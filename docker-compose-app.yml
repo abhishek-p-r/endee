@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # Endee Vector Database
+  endee:
+    image: endeeio/endee:latest
+    container_name: endee-db
+    ports:
+      - "8080:8080"
+    environment:
+      - LOG_LEVEL=info
+    volumes:
+      - endee_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: endee-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - ENDEE_URL=http://endee:8080
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8000
+      - DEBUG=False
+    depends_on:
+      endee:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+    command: python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
+
+  # Streamlit Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: endee-frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - app-network
+    command: streamlit run frontend/streamlit_app.py --server.port=8501 --server.address=0.0.0.0
+
+volumes:
+  endee_data:
+
+networks:
+  app-network:
+    driver: bridge
