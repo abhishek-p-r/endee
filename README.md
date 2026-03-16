@@ -1,139 +1,724 @@
-<p align="center">
-  <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
-      <source media="(prefers-color-scheme: light)" srcset="docs/assets/logo-light.svg">
-      <img height="100" alt="Endee" src="docs/assets/logo-dark.svg">
-  </picture>
-</p>
+# Endee AI Knowledge Assistant - Retrieval Augmented Generation (RAG) System
 
-<p align="center">
-    <b>High-performance open-source vector database for AI search, RAG, semantic search, and hybrid retrieval.</b>
-</p>
+A production-ready Retrieval Augmented Generation (RAG) application using **Endee Vector Database** for semantic search and Google Gemini AI for intelligent response generation. This project demonstrates a complete AI application that loads documents, generates embeddings, stores them in Endee, and retrieves relevant information to answer user questions.
 
-<p align="center">
-    <a href="./docs/getting-started.md"><img src="https://img.shields.io/badge/Quick_Start-Local_Setup-success?style=flat-square" alt="Quick Start"></a>
-    <a href="https://docs.endee.io/quick-start"><img src="https://img.shields.io/badge/Docs-Quick_Start-success?style=flat-square" alt="Docs"></a>
-    <a href="https://github.com/endee-io/endee/blob/master/LICENSE"><img src="https://img.shields.io/github/license/endee-io/endee?style=flat-square" alt="License"></a>
-    <a href="https://discord.gg/5HFGqDZQE3"><img src="https://img.shields.io/badge/Discord-Join_Chat-5865F2?logo=discord&style=flat-square" alt="Discord"></a>
-    <a href="https://endee.io/"><img src="https://img.shields.io/badge/Website-Endee-111111?style=flat-square" alt="Website"></a>
-    <!-- <a href="https://endee.io/benchmarks"><img src="https://img.shields.io/badge/Benchmarks-Coming_Soon-1F8B4C?style=flat-square" alt="Benchmarks"></a> -->
-    <!-- <a href="https://endee.io/cloud"><img src="https://img.shields.io/badge/Cloud-Coming_Soon-2496ED?style=flat-square" alt="Cloud"></a> -->
-</p>
+## Table of Contents
 
-<p align="center">
-<strong><a href="./docs/getting-started.md">Quick Start</a> • <a href="#why-endee">Why Endee</a> • <a href="#use-cases">Use Cases</a> • <a href="#features">Features</a> • <a href="#api-and-clients">API and Clients</a> • <a href="#docs-and-links">Docs</a> • <a href="#community-and-contact">Contact</a></strong>
-</p>
+- [Project Overview](#project-overview)
+- [System Architecture](#system-architecture)
+- [How Endee is Used](#how-endee-is-used)
+- [Installation and Setup](#installation-and-setup)
+- [How to Run](#how-to-run)
+- [Example Usage](#example-usage)
+- [Project Structure](#project-structure)
+- [API Endpoints](#api-endpoints)
+- [Troubleshooting](#troubleshooting)
 
-# Endee: Open-Source Vector Database for AI Search
+---
 
-**Endee** is a high-performance open-source vector database built for AI search and retrieval workloads. It is designed for teams building **RAG pipelines**, **semantic search**, **hybrid search**, recommendation systems, and filtered vector retrieval APIs that need production-oriented performance and control.
+## Project Overview
 
-Endee combines vector search with filtering, sparse retrieval support, backup workflows, and deployment flexibility across local builds and Docker-based environments. The project is implemented in C++ and optimized for modern CPU targets, including AVX2, AVX512, NEON, and SVE2.
+This AI Knowledge Assistant demonstrates a **complete production-ready RAG system** using Endee as the primary vector database. The system:
 
-If you want the fastest path to evaluate Endee locally, start with the [Getting Started guide](./docs/getting-started.md) or the hosted docs at [docs.endee.io](https://docs.endee.io/quick-start).
+- **Loads documents** from `.txt` files
+- **Generates embeddings** using SentenceTransformers
+- **Stores vectors** in Endee vector database with metadata
+- **Performs semantic search** to retrieve relevant documents
+- **Generates answers** using Google Gemini AI
+- **Maintains conversation** history and context
 
-## Why Endee
+### Key Features
 
-- Built as a dedicated vector database for AI applications, search systems, and retrieval-heavy workloads.
-- Supports dense vector retrieval plus sparse search capabilities for hybrid search use cases.
-- Includes payload filtering for metadata-aware retrieval and application-specific query logic.
-- Ships with operational features already documented in this repo, including backup flows and runtime observability.
-- Offers flexible deployment paths: local scripts, manual builds, Docker images, and prebuilt registry images.
+✅ Multi-agent RAG pipeline (4 specialized bots)
+✅ Endee vector database integration for semantic search
+✅ Document ingestion from `.txt` files
+✅ Embeddings using sentence-transformers (384 dimensions)
+✅ FastAPI backend with 14+ endpoints
+✅ Streamlit web UI for easy interaction
+✅ Conversation memory management
+✅ Query optimization and caching
+✅ Real-time analytics dashboard
+✅ Production-ready with logging and error handling
 
-## Getting Started
+---
 
-The full installation, build, Docker, runtime, and authentication instructions are in [docs/getting-started.md](./docs/getting-started.md).
+## System Architecture
 
-Fastest local path:
+### Complete Data Flow
 
-```bash
-chmod +x ./install.sh ./run.sh
-./install.sh --release --avx2
-./run.sh
+```
+USER QUESTION
+    ↓
+[Query Understanding Bot]
+    - Optimize query
+    - Detect intent
+    - Extract keywords
+    ↓
+[Generate Query Embedding]
+    - Convert to 384-dim vector
+    - Using SentenceTransformers
+    ↓
+[ENDEE VECTOR DATABASE]
+    ┌─────────────────────────────┐
+    │ Collections & Vectors       │
+    │ ├─ Metadata filtering       │
+    │ ├─ Cosine similarity search │
+    │ └─ Top-K retrieval          │
+    └─────────────────────────────┘
+    ↓
+[Retrieve Relevant Documents]
+    - Top 5 similar chunks
+    - With metadata and scores
+    ↓
+[Knowledge Retrieval Bot]
+    - Format context
+    - Organize information
+    - Extract key points
+    ↓
+[Reasoning Bot + Gemini AI]
+    - Generate answer
+    - Use retrieved context
+    - Maintain conversation
+    ↓
+[Response Formatting Bot]
+    - Structure response
+    - Add citations
+    - Format sources
+    ↓
+FINAL ANSWER WITH SOURCES
 ```
 
-The server listens on port `8080`. For detailed setup paths, supported operating systems, CPU optimization flags, Docker usage, and authentication examples, use:
+### Component Interaction
 
-- [Getting Started](./docs/getting-started.md)
-- [Hosted Quick Start Docs](https://docs.endee.io/quick-start)
+```
+┌────────────────────────────────────────────────────────────┐
+│                    STREAMLIT UI                            │
+│              (Web Interface for Users)                      │
+└────────────────────────────────────────────────────────────┘
+                           ↓
+        ┌──────────────────────────────────────┐
+        │        FASTAPI BACKEND                │
+        │  (14+ REST API Endpoints)             │
+        │                                       │
+        │  ├─ /ask                             │
+        │  ├─ /ingest                          │
+        │  ├─ /analytics                       │
+        │  └─ /health                          │
+        └──────────────────────────────────────┘
+                  ↓              ↓
+        ┌──────────────┐  ┌──────────────┐
+        │ Query Bots   │  │ Embeddings   │
+        │ (4 agents)   │  │ Service      │
+        └──────────────┘  └──────────────┘
+                  ↓              ↓
+        ┌──────────────────────────────────────┐
+        │  ENDEE VECTOR DATABASE               │
+        │  (Primary Vector Storage)            │
+        │                                      │
+        │  Collections:                        │
+        │  ├─ knowledge_base                   │
+        │  │  ├─ Dimension: 384                │
+        │  │  ├─ Metric: Cosine                │
+        │  │  └─ Vectors: Document chunks     │
+        │  └─ Metadata: Source, text, score   │
+        └──────────────────────────────────────┘
+                           ↓
+        ┌──────────────────────────────────────┐
+        │  GOOGLE GEMINI AI                    │
+        │  (LLM for Response Generation)       │
+        └──────────────────────────────────────┘
+```
 
-## Use Cases
+---
 
-### RAG and AI Retrieval
+## How Endee is Used
 
-Use Endee as the retrieval layer for question answering, chat assistants, copilots, and other RAG applications that need fast vector search with metadata-aware filtering.
+### 1. Document Ingestion Process
 
-### Agentic AI and AI Agent Memory
+**Step 1: Load Text Files**
+```python
+documents = load_txt_files("data/")
+# Loads: knowledge.txt, guides.txt, etc.
+```
 
-Use Endee as the long-term memory and context retrieval layer for AI agents built with frameworks like LangChain, CrewAI, AutoGen, and LlamaIndex. Store and retrieve past observations, tool outputs, conversation history, and domain knowledge mid-execution with low-latency filtered vector search, so your autonomous agents get the right context without stalling their reasoning loop.
+**Step 2: Split into Chunks**
+```python
+chunks = split_text(documents, chunk_size=500, overlap=200)
+# Example: 2000-char document → 4-5 chunks with 200-char overlap
+```
 
-### Semantic Search
+**Step 3: Generate Embeddings**
+```python
+embeddings = embedding_model.encode(chunks)
+# Converts each chunk to 384-dimensional vector
+# Uses: sentence-transformers/all-MiniLM-L6-v2
+```
 
-Build semantic search experiences for documents, products, support content, and knowledge bases using vector similarity search instead of exact keyword-only matching.
+**Step 4: Upsert to Endee**
+```python
+endee_client.upsert_vectors({
+    "id": f"doc_{chunk_id}",
+    "vector": embedding,          # 384 floats
+    "metadata": {
+        "text": chunk_text,       # Original text
+        "source": source_file,    # Which file
+        "chunk_index": index,     # Position
+        "timestamp": datetime.now()
+    }
+})
+```
 
-### Hybrid Search
+### 2. Search Process
 
-Combine dense retrieval, sparse vectors, and filtering to improve relevance for search workflows where both semantic understanding and term-level precision matter.
+**User Asks Question:**
+```
+"What is Endee and how do I use it?"
+```
 
-### Recommendations and Matching
+**Convert to Embedding:**
+```python
+query_embedding = embedding_model.encode(query)
+# Same model as documents → comparable embeddings
+```
 
-Support recommendation, similarity matching, and nearest-neighbor retrieval workflows across text, embeddings, and other high-dimensional representations.
+**Search Endee Database:**
+```python
+results = endee_client.search(
+    query_vector=query_embedding,
+    limit=5,                      # Get top 5
+    with_metadata=True            # Include text & source
+)
+```
 
-## Features
+**Endee Returns:**
+```python
+[
+    {
+        "id": "doc_0",
+        "score": 0.92,            # Cosine similarity
+        "metadata": {
+            "text": "Endee is a vector database...",
+            "source": "endee_guide.txt"
+        }
+    },
+    {
+        "id": "doc_1",
+        "score": 0.85,
+        "metadata": {...}
+    }
+    # ... more results
+]
+```
 
-- **Vector search** for AI retrieval and semantic similarity workloads.
-- **Hybrid retrieval support** with sparse vector capabilities documented in [docs/sparse.md](./docs/sparse.md).
-- **Payload filtering** for structured retrieval logic documented in [docs/filter.md](./docs/filter.md).
-- **Backup APIs and flows** documented in [docs/backup-system.md](./docs/backup-system.md).
-- **Operational logging and instrumentation** documented in [docs/logs.md](./docs/logs.md) and [docs/mdbx-instrumentation.md](./docs/mdbx-instrumentation.md).
-- **CPU-targeted builds** for AVX2, AVX512, NEON, and SVE2 deployments.
-- **Docker deployment options** for local and server environments.
+### 3. Response Generation
 
-## API and Clients
+**Build Context from Retrieved Documents:**
+```python
+context = "\n\n".join([
+    f"Source: {r['metadata']['source']}\n{r['metadata']['text']}"
+    for r in results
+])
+```
 
-Endee exposes an HTTP API for managing indexes and serving retrieval workloads. The current repo documentation and examples focus on running the server directly and calling its API endpoints.
+**Send to Gemini AI:**
+```python
+prompt = f"""
+Context Information:
+{context}
 
-Current developer entry points:
+Question: {user_question}
 
-- [Getting Started](./docs/getting-started.md) for local build and run flows
-- [Hosted Docs](https://docs.endee.io/quick-start) for product documentation
-- [Release Notes 1.0.0](https://github.com/endee-io/endee/releases/tag/1.0.0) for recent platform changes
+Please answer based on the context above.
+Include citations to the source documents.
+"""
 
-## Docs and Links
+answer = gemini_model.generate_content(prompt)
+```
 
-- [Getting Started](./docs/getting-started.md)
-- [Hosted Documentation](https://docs.endee.io/quick-start)
-- [Release Notes](https://github.com/endee-io/endee/releases/tag/1.0.0)
-- [Sparse Search](./docs/sparse.md)
-- [Filtering](./docs/filter.md)
-- [Backups](./docs/backup-system.md)
+**Return to User:**
+```python
+{
+    "answer": "Endee is a vector database that...",
+    "sources": [
+        {"text": "...", "source": "endee_guide.txt", "similarity": 0.92},
+        {"text": "...", "source": "guides.txt", "similarity": 0.85}
+    ],
+    "confidence": 0.88
+}
+```
 
-## Community and Contact
+---
 
-- Join the community on [Discord](https://discord.gg/5HFGqDZQE3)
-- Visit the website at [endee.io](https://endee.io/)
-- For trademark or branding permissions, contact [enterprise@endee.io](mailto:enterprise@endee.io)
+## Data Processing
 
-## Contributing
+### Document Loading
+- **Location**: `data/` directory
+- **Formats**: Plain text `.txt` files
+- **Processing**: Automatic text extraction and cleanup
 
-We welcome contributions from the community to help make vector search faster and more accessible for everyone.
+### Text Chunking Strategy
+- **Chunk Size**: 500 characters (configurable)
+- **Overlap**: 200 characters (for context continuity)
+- **Rationale**: Optimal balance between context and search granularity
 
-- Submit pull requests for fixes, features, and improvements
-- Report bugs or performance issues through GitHub issues
-- Propose enhancements for search quality, performance, and deployment workflows
+### Example Processing
+```
+documents/knowledge.txt (2000 chars)
+    ├─ Chunk 1: [0-500] → Embedding 1 → Endee ID: doc_0
+    ├─ Chunk 2: [300-800] → Embedding 2 → Endee ID: doc_1
+    ├─ Chunk 3: [600-1100] → Embedding 3 → Endee ID: doc_2
+    └─ ... (overlapping chunks)
 
-## License
+documents/guides.txt (3000 chars)
+    ├─ Chunk 1: [0-500] → Embedding 4 → Endee ID: doc_10
+    └─ ... (more chunks)
+```
 
-Endee is open source software licensed under the **Apache License 2.0**. See the [LICENSE](./LICENSE) file for full terms.
+### Embedding Model
+- **Model**: `sentence-transformers/all-MiniLM-L6-v2`
+- **Dimensions**: 384
+- **Speed**: ~100 docs/sec on CPU
+- **Quality**: High semantic understanding
 
-## Trademark and Branding
+---
 
-“Endee” and the Endee logo are trademarks of Endee Labs.
+## Installation and Setup
 
-The Apache License 2.0 does not grant permission to use the Endee name, logos, or branding in a way that suggests endorsement or affiliation.
+### Prerequisites
+```
+Python 3.8+
+pip or conda
+Git
+4GB RAM minimum
+```
 
-If you offer a hosted or managed service based on this software, you must use your own branding and avoid implying it is an official Endee service.
+### Step 1: Clone Repository
+```bash
+git clone https://github.com/abhishek-p-r/endee.git
+cd endee
+git checkout endee-ai-assistant
+```
 
-## Third-Party Software
+### Step 2: Create Python Environment
+```bash
+# Create virtual environment
+python -m venv venv
 
-This project includes or depends on third-party software components licensed under their respective open-source licenses. Use of those components is governed by their own license terms.
+# Activate it
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+```
+
+### Step 3: Install Python Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### Step 4: Set Up Endee Vector Database
+
+#### Option A: Local Installation (Linux/macOS)
+```bash
+# Clone Endee if separate
+git clone https://github.com/endee-io/endee.git
+cd endee
+
+# Install and run
+chmod +x install.sh run.sh
+./install.sh --release --avx2
+./run.sh
+
+# Verify: curl http://localhost:8080/health
+```
+
+#### Option B: Docker (Recommended)
+```bash
+# Using provided docker-compose
+docker-compose -f docker-compose-app.yml up endee-db
+
+# Or manually:
+docker run -p 8080:8080 endee-db
+```
+
+### Step 5: Configure Environment
+```bash
+# Copy template
+cp .env.example .env
+
+# Edit .env with your values:
+nano .env
+```
+
+**Required variables:**
+```env
+# Endee vector database
+ENDEE_URL=http://localhost:8080
+ENDEE_COLLECTION_NAME=knowledge_base
+
+# Google Gemini AI
+GEMINI_API_KEY=your_api_key_here
+
+# Optional
+EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+BACKEND_PORT=8000
+STREAMLIT_PORT=8501
+```
+
+**Get Gemini API Key:**
+1. Visit: https://makersuite.google.com/app/apikey
+2. Click "Create API Key"
+3. Copy key to `.env`
+
+### Step 6: Prepare Documents
+```bash
+# Create data directory
+mkdir -p data
+
+# Add your .txt files
+# Example files:
+# data/knowledge.txt
+# data/guides.txt
+# data/faqs.txt
+```
+
+---
+
+## How to Run
+
+### Method 1: Automated Start (Easiest - 5 minutes)
+```bash
+chmod +x start.sh
+./start.sh
+
+# Automatically:
+# 1. Verifies Endee is running
+# 2. Ingests documents from data/
+# 3. Creates embeddings
+# 4. Stores in Endee database
+# 5. Starts backend API (port 8000)
+# 6. Starts Streamlit UI (port 8501)
+
+# Opens browser to http://localhost:8501
+```
+
+### Method 2: Manual Step-by-Step (10 minutes)
+
+**Terminal 1: Start Endee Server**
+```bash
+cd endee
+./run.sh
+# Server starts on http://localhost:8080
+# Verify: curl http://localhost:8080/health
+```
+
+**Terminal 2: Ingest Documents**
+```bash
+python scripts/ingest_documents.py \
+    --data-dir data/ \
+    --endee-url http://localhost:8080 \
+    --collection knowledge_base
+
+# Output:
+# Loading documents from data/
+# Splitting into chunks...
+# Generating embeddings...
+# Upserting to Endee... (100 vectors)
+# ✓ Ingestion complete
+```
+
+**Terminal 3: Start Backend API**
+```bash
+python -m uvicorn backend.main:app \
+    --reload \
+    --host 0.0.0.0 \
+    --port 8000
+
+# API available at: http://localhost:8000
+# Swagger UI at: http://localhost:8000/docs
+```
+
+**Terminal 4: Start Streamlit UI**
+```bash
+streamlit run frontend/streamlit_app.py
+
+# Opens automatically at: http://localhost:8501
+```
+
+### Method 3: Docker Compose (Production)
+```bash
+docker-compose -f docker-compose-app.yml up
+
+# Services:
+# Endee:  http://localhost:8080
+# API:    http://localhost:8000
+# UI:     http://localhost:8501
+
+# Stop:
+docker-compose -f docker-compose-app.yml down
+```
+
+---
+
+## Example Usage
+
+### Using the Web UI (Easiest)
+
+1. **Open Browser**: http://localhost:8501
+2. **Type Question**: "How does semantic search work?"
+3. **Get Answer**: AI-powered response with sources
+4. **View Sources**: See which documents were used
+
+### Using the REST API
+
+**Example 1: Ask a Question**
+```bash
+curl -X POST "http://localhost:8000/ask" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "What is Endee?",
+    "session_id": "user123"
+  }'
+```
+
+**Response:**
+```json
+{
+  "answer": "Endee is a high-performance open-source vector database built for AI search and retrieval workloads. It's designed for RAG pipelines, semantic search, and recommendation systems.",
+  "sources": [
+    {
+      "text": "Endee is a vector database designed for...",
+      "source": "endee_guide.txt",
+      "similarity": 0.92
+    }
+  ],
+  "success": true,
+  "response_time": 2.3
+}
+```
+
+**Example 2: Get System Stats**
+```bash
+curl http://localhost:8000/analytics/stats
+```
+
+**Example 3: Optimize a Query**
+```bash
+curl -X POST "http://localhost:8000/query/optimize" \
+  -d "question=what%20is%20endee"
+```
+
+### Sample Queries and Results
+
+**Query 1: Definition Question**
+```
+User: "What is a vector embedding?"
+
+Retrieved: 3 chunks from embeddings_guide.txt
+
+Answer:
+"A vector embedding is a numerical representation 
+of text that captures semantic meaning. It's a 
+fixed-size array of numbers (384 dimensions in 
+our case) where similar texts have similar values. 
+This enables semantic search by comparing vectors 
+using distance metrics like cosine similarity."
+
+Sources:
+[1] embeddings_guide.txt - Section: "What are Embeddings?"
+[2] embeddings_guide.txt - Section: "Why Use Embeddings?"
+```
+
+**Query 2: How-To Question**
+```
+User: "How do I install Endee?"
+
+Retrieved: 2 chunks from installation_guide.txt
+
+Answer:
+"To install Endee locally:
+1. Clone: git clone https://github.com/endee-io/endee.git
+2. Install: ./install.sh --release --avx2
+3. Run: ./run.sh
+4. Access: http://localhost:8080
+
+For Docker, use the provided Dockerfile 
+for containerized deployment."
+
+Sources:
+[1] installation_guide.txt - Section: "Local Installation"
+```
+
+---
+
+## Project Structure
+
+```
+endee/
+├── README.md                          # This file
+├── requirements.txt                   # Python dependencies
+├── .env.example                       # Environment template
+├── start.sh                           # Auto-start script
+│
+├── backend/                           # FastAPI Application
+│   ├── main.py                        # API server & 14 endpoints
+│   ├── config.py                      # Configuration
+│   ├── logging_config.py              # Logging setup
+│   │
+│   ├── endee_client.py                # ★ Endee DB client
+│   │   ├─ health_check()              # Check server
+│   │   ├─ create_collection()         # Create vector store
+│   │   ├─ upsert_vectors()            # Store embeddings
+│   │   ├─ search()                    # Semantic search
+│   │   └─ delete_collection()         # Cleanup
+│   │
+│   ├── embeddings.py                  # ★ Embedding service
+│   │   ├─ generate_embedding()        # Single text → vector
+│   │   └─ generate_embeddings_batch() # Multiple texts → vectors
+│   │
+│   ├── rag_pipeline.py                # ★ RAG orchestration
+│   │   └─ process_query()             # Complete pipeline
+│   │
+│   ├── bots/                          # Multi-agent system
+│   │   ├─ query_bot.py                # Optimize queries
+│   │   ├─ retrieval_bot.py            # Fetch from Endee
+│   │   ├─ reasoning_bot.py            # Generate with Gemini
+│   │   └─ formatter_bot.py            # Format response
+│   │
+│   ├── memory_manager.py              # Conversation history
+│   ├── cache_manager.py               # Query caching
+│   ├── analytics.py                   # Metrics & stats
+│   └── query_optimizer.py             # Query enhancement
+│
+├── frontend/                          # Streamlit UI
+│   ├── streamlit_app.py               # Main interface
+│   └── streamlit_enhanced.py          # Enhanced version
+│
+├── scripts/                           # Utilities
+│   ├── ingest_documents.py            # Load & embed docs
+│   └── test_api.py                    # API testing
+│
+├── data/                              # Documents
+│   └── (your .txt files here)
+│
+└── docker-compose-app.yml             # Multi-container setup
+```
+
+### Key Components Explained
+
+| File | Purpose | How It Uses Endee |
+|------|---------|-------------------|
+| `endee_client.py` | Endee communication | HTTP client for all DB operations |
+| `embeddings.py` | Text → vectors | Generates embeddings for documents and queries |
+| `rag_pipeline.py` | Main orchestration | Coordinates all components |
+| `ingest_documents.py` | Document loading | Creates embeddings and stores in Endee |
+| `retrieval_bot.py` | Semantic search | Queries Endee and formats results |
+
+---
+
+## API Endpoints
+
+### Query Endpoints
+- `POST /ask` - Ask question (returns answer with sources)
+- `POST /ask/stream` - Streaming response
+- `POST /ask/batch` - Multiple questions at once
+
+### Document Management
+- `POST /ingest` - Manual document ingestion
+- `POST /ingest/upload` - Upload .txt files
+- `GET /documents` - List all documents in Endee
+- `DELETE /documents/{id}` - Remove from Endee
+
+### Analytics & Optimization
+- `GET /analytics/stats` - System performance metrics
+- `GET /analytics/report` - Detailed report
+- `POST /query/optimize` - Analyze query before search
+- `POST /cache/clear` - Clear result cache
+
+### Health & Info
+- `GET /health` - Server status
+- `GET /docs` - API documentation (Swagger)
+
+---
+
+## Troubleshooting
+
+### Issue: "Cannot connect to Endee"
+```
+Error: Connection to Endee failed
+Solution: 
+  1. Verify Endee is running: curl http://localhost:8080/health
+  2. If not, start Endee: cd endee && ./run.sh
+  3. Check .env ENDEE_URL is correct
+```
+
+### Issue: "Gemini API key not found"
+```
+Error: GEMINI_API_KEY not found
+Solution:
+  1. Get API key: https://makersuite.google.com/app/apikey
+  2. Add to .env: GEMINI_API_KEY=your_key
+  3. Restart application
+```
+
+### Issue: "No documents found / No results"
+```
+Error: Search returns empty results
+Solution:
+  1. Ingest documents: python scripts/ingest_documents.py
+  2. Verify in Endee: curl http://localhost:8080/collections
+  3. Check data/ directory has .txt files
+```
+
+### Issue: "Slow responses"
+```
+Solution:
+  1. Check cache hit rate: curl http://localhost:8000/analytics/stats
+  2. Monitor Endee: curl http://localhost:8080/health
+  3. Verify embeddings match dimension: 384
+```
+
+---
+
+## Performance Metrics
+
+The system tracks:
+- **Query Speed**: Average response time (target: 2-3 seconds)
+- **Cache Hit Rate**: % of cached results (target: 50-70%)
+- **Success Rate**: % successful queries (target: 95%+)
+- **Vector Count**: Total embeddings in Endee
+- **System Health**: Endee server status
+
+Access metrics: `http://localhost:8000/analytics/stats`
+
+---
+
+## Architecture Highlights
+
+### Why Endee?
+✓ Fast semantic search using cosine similarity
+✓ Efficient vector storage (384 dimensions)
+✓ Metadata filtering for refined search
+✓ HTTP API for easy integration
+✓ High-performance similarity matching
+
+### Why This Design?
+✓ Multi-agent system (separation of concerns)
+✓ Conversation memory (context awareness)
+✓ Query optimization (better results)
+✓ Caching layer (speed optimization)
+✓ Analytics (monitoring & debugging)
+
+---
+
+## Further Reading
+
+- [Endee GitHub](https://github.com/endee-io/endee)
+- [Vector Databases Explained](https://www.qdrant.io/articles/vector-database/)
+- [RAG Systems](https://huggingface.co/docs/hub/datasets-overview)
+- [Semantic Search](https://www.sbert.net/)
+- [Gemini API Docs](https://ai.google.dev/)
+
+---
+
+**Built with Endee Vector Database + Gemini AI + Python**
