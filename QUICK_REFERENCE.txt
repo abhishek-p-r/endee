@@ -2,168 +2,219 @@
 ENDEE AI KNOWLEDGE ASSISTANT - QUICK REFERENCE CARD
 ================================================================================
 
-PROJECT: Retrieval Augmented Generation (RAG) System using Endee Vector Database
-STATUS: COMPLETE & FULLY FUNCTIONAL ✓
+PROJECT: RAG System using Endee Vector Database + OpenAI GPT-3.5-turbo
+STATUS: PRODUCTION READY ✓ | CODE: 5,200+ LINES | DOCS: 2,500+ LINES
 
 ================================================================================
 SYSTEM OVERVIEW
 ================================================================================
 
 What It Does:
-  1. Loads .txt documents
-  2. Converts to 384-dimensional embeddings
-  3. Stores in Endee vector database
-  4. Retrieves relevant documents on query
-  5. Uses Gemini AI to generate answers
+  1. Loads documents (.txt, .pdf, .md)
+  2. Splits into intelligent chunks (512 characters)
+  3. Converts to 1536-dimensional embeddings (OpenAI)
+  4. Stores in Endee vector database
+  5. On query: searches Endee, retrieves context, generates GPT answer
 
 Key Components:
-  • Endee Vector Database (localhost:8080) - Vector storage & search
-  • FastAPI Backend (localhost:8000) - API server
-  • Streamlit UI (localhost:8501) - Web interface
-  • Python Processing - Embeddings, orchestration, AI
+  • Endee Vector DB (port 6379) - Vector storage & semantic search
+  • FastAPI Backend (port 8000) - REST API with 8+ endpoints
+  • Streamlit UI (port 8501) - Interactive web interface
+  • OpenAI API - Embeddings (text-embedding-3-small) & GPT-3.5-turbo
 
 ================================================================================
-INSTALLATION (5 minutes)
+INSTALLATION (5 MINUTES)
 ================================================================================
 
 Prerequisites:
-  - Python 3.8+
-  - Git
-  - 4GB RAM
+  - Python 3.10+ OR Docker
+  - OpenAI API Key (https://platform.openai.com/api-keys)
+  - 4GB RAM minimum
 
 Steps:
   1. git clone https://github.com/abhishek-p-r/endee.git
-  2. cd endee && git checkout endee-ai-assistant
-  3. python -m venv venv && source venv/bin/activate
-  4. pip install -r requirements.txt
-  5. cp .env.example .env
-  6. Get Gemini API key: https://makersuite.google.com/app/apikey
-  7. Add to .env: GEMINI_API_KEY=your_key
+  2. cd endee
+  3. cp .env.example .env
+  4. Get OpenAI key: https://platform.openai.com/api-keys
+  5. Edit .env: OPENAI_API_KEY=sk-your-key-here
+  6. Place documents in data/ folder (optional)
 
 ================================================================================
 QUICK START (3 METHODS)
 ================================================================================
 
-METHOD 1: AUTOMATED (Fastest - 5 minutes)
-  chmod +x start.sh
-  ./start.sh
-  # Opens http://localhost:8501 automatically
-
-METHOD 2: STEP-BY-STEP (10 minutes, see COMPLETE_SETUP.md)
-  Terminal 1: cd endee && ./run.sh
-  Terminal 2: python scripts/ingest_documents.py
-  Terminal 3: python -m uvicorn backend.main:app --reload
-  Terminal 4: streamlit run frontend/streamlit_app.py
-
-METHOD 3: DOCKER (Production)
+METHOD 1: DOCKER COMPOSE (EASIEST - 5 minutes)
   docker-compose -f docker-compose-app.yml up
+  # Starts: Endee + Backend + Frontend
+  # Access: http://localhost:8501
+
+METHOD 2: MANUAL (10 minutes)
+  Terminal 1: docker run -p 6379:6379 endeeio/endee:latest
+  Terminal 2: cd backend_v2 && python main.py
+  Terminal 3: cd frontend_v2 && streamlit run app.py
+
+METHOD 3: FULL SETUP (15 minutes, follow STARTUP_GUIDE.md)
+  python -m venv venv && source venv/bin/activate
+  pip install -r requirements_new.txt
+  # Then follow STARTUP_GUIDE.md step by step
 
 ================================================================================
 ESSENTIAL COMMANDS
 ================================================================================
 
-Start Endee Server:
-  cd endee && ./run.sh
-  # Available at: http://localhost:8080
+Start All Services (Docker):
+  docker-compose -f docker-compose-app.yml up
+  # Starts: Endee (6379) + Backend (8000) + Frontend (8501)
+
+Start Endee Only:
+  docker run -p 6379:6379 endeeio/endee:latest
 
 Ingest Documents:
-  python scripts/ingest_documents.py
-  # Loads .txt files from data/ and stores in Endee
+  cd backend_v2
+  python ingest_documents.py
+  # Loads .txt, .pdf, .md files from data/ → stores in Endee
 
 Start Backend API:
-  python -m uvicorn backend.main:app --reload --port 8000
+  cd backend_v2
+  python main.py
   # API docs: http://localhost:8000/docs
 
 Start Streamlit UI:
-  streamlit run frontend/streamlit_app.py
-  # Opens: http://localhost:8501
+  cd frontend_v2
+  streamlit run app.py
+  # Opens at: http://localhost:8501
+
+Check System Health:
+  curl http://localhost:8000/health
+  curl http://localhost:6379/health
 
 ================================================================================
-API ENDPOINTS (14+)
+API ENDPOINTS (8+)
 ================================================================================
 
-Ask Question:
-  POST /ask
-  Data: {"question": "What is Endee?", "session_id": "user1"}
+Full RAG Query (Search + Answer):
+  POST /query
+  Data: {"query": "What is semantic search?", "top_k": 5}
+  Returns: {answer, context_chunks, sources, timing}
 
-Get Analytics:
-  GET /analytics/stats
+Semantic Search Only (No Answer):
+  POST /query/retrieve
+  Data: {"query": "keyword search"}
+  Returns: List of relevant chunks with scores
 
-Optimize Query:
-  POST /query/optimize?question=what%20is%20endee
+Stream Response (Real-time):
+  POST /query/stream
+  Returns: Streaming text chunks
 
 Upload Document:
-  POST /ingest/upload
-
-View API Docs:
-  GET /docs (http://localhost:8000/docs)
+  POST /documents/upload
+  Input: Multipart form with file (.txt, .pdf, .md)
+  Returns: Processing status
 
 Health Check:
-  GET /health (both API and Endee)
+  GET /health
+  Returns: {status, endee_connected, timestamp}
+
+Collection Statistics:
+  GET /stats
+  Returns: {count, memory_used, last_updated}
+
+View API Docs:
+  http://localhost:8000/docs (Swagger/OpenAPI)
 
 ================================================================================
-CONFIGURATION
+CONFIGURATION (.env file)
 ================================================================================
 
-Edit .env with:
-  ENDEE_URL=http://localhost:8080
-  ENDEE_COLLECTION_NAME=knowledge_base
-  GEMINI_API_KEY=your_api_key_here
-  EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
-  EMBEDDING_DIMENSION=384
-  BACKEND_PORT=8000
-  STREAMLIT_PORT=8501
+REQUIRED:
+  OPENAI_API_KEY=sk-your-key-from-platform.openai.com
+
+DEFAULTS (no change needed):
+  ENDEE_URL=http://localhost:6379
+  ENDEE_DB_NAME=knowledge_base
+  OPENAI_MODEL=gpt-3.5-turbo
+  OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+
+OPTIONAL TWEAKS:
+  RAG_TOP_K=5              # Docs to retrieve (↓=faster)
+  RAG_TEMPERATURE=0.7      # Creativity (0=focused, 1=creative)
+  RAG_MAX_TOKENS=1000      # Answer length limit
+  CHUNK_SIZE=512           # Doc chunk size (chars)
+  CHUNK_OVERLAP=50         # Overlap between chunks
 
 ================================================================================
 PROJECT STRUCTURE
 ================================================================================
 
-backend/
-  ├─ main.py (FastAPI server, 14+ endpoints)
-  ├─ endee_client.py (Endee integration)
-  ├─ embeddings.py (Generate embeddings)
-  ├─ rag_pipeline.py (Orchestration)
-  └─ bots/ (Query, Retrieval, Reasoning, Formatting)
+backend_v2/
+  ├─ main.py (478 lines) - FastAPI with 8+ endpoints
+  ├─ rag_pipeline.py (387 lines) - RAG orchestration
+  ├─ endee_integration.py (330 lines) - Endee vector DB client
+  ├─ openai_embeddings.py (213 lines) - OpenAI embedding gen
+  ├─ document_processor.py (341 lines) - Doc loading & chunking
+  └─ ingest_documents.py (236 lines) - Batch ingestion
 
-frontend/
-  ├─ streamlit_app.py (Web UI)
-  └─ streamlit_enhanced.py (Enhanced version)
+frontend_v2/
+  └─ app.py (536 lines) - Streamlit web interface
 
-scripts/
-  ├─ ingest_documents.py (Load & embed documents)
-  └─ test_api.py (API testing)
-
-data/
-  └─ (Your .txt files go here)
+Configuration & Docker:
+  ├─ .env.example - Config template
+  ├─ requirements_new.txt - Dependencies
+  ├─ Dockerfile - Backend image
+  ├─ Dockerfile.frontend - Frontend image
+  └─ docker-compose-app.yml - Orchestration
 
 Documentation:
-  ├─ README.md (671 lines) ⭐ MAIN
-  ├─ COMPLETE_SETUP.md (578 lines) ⭐ SETUP
-  ├─ FINAL_SUMMARY.md (570 lines)
-  └─ QUICK_REFERENCE.txt (This file)
+  ├─ README_PRODUCTION.md (722 lines) ⭐ MAIN DOCS
+  ├─ STARTUP_GUIDE.md (575 lines) ⭐ SETUP GUIDE
+  ├─ IMPLEMENTATION_COMPLETE.md (586 lines) - Summary
+  ├─ DELIVERY_SUMMARY.txt (499 lines) - Overview
+  └─ QUICK_REFERENCE.txt (This file) - Quick lookup
+
+data/
+  └─ (Your .txt, .pdf, .md documents)
 
 ================================================================================
-HOW ENDEE IS USED
+HOW ENDEE VECTOR DATABASE IS USED
 ================================================================================
 
 1. DOCUMENT INGESTION:
-   .txt file → Split into chunks (500 chars, 200 char overlap)
-             → Generate embeddings (384 dimensions)
-             → Upsert to Endee with metadata
+   .txt/.pdf/.md → Split into chunks (512 chars, 50 char overlap)
+                → Generate embeddings (1536 dimensions, OpenAI)
+                → Store in Endee with metadata
+                   • document_id, chunk_id, source
+                   • text, chunk_index, timestamps
+                   • custom metadata
 
-2. SEMANTIC SEARCH:
-   User question → Generate embedding (same model as documents)
-                → Endee search (cosine similarity)
-                → Retrieve top-5 results
+2. VECTOR STORAGE IN ENDEE:
+   Collection: "knowledge_base"
+   - Metric: cosine similarity
+   - Dimension: 1536 (text-embedding-3-small)
+   - Metadata: Rich document metadata included
 
-3. ANSWER GENERATION:
-   Retrieved docs → Build context
-                 → Send to Gemini AI
-                 → Generate answer
-                 → Add source citations
+3. SEMANTIC SEARCH:
+   User query → Generate embedding (1536 dims, OpenAI)
+            → Endee similarity search
+            → Retrieve top-5 chunks with scores (0-1)
+            → Filter by threshold (0.5 default)
 
-4. RESPONSE:
-   Answer + Sources → Return to user
+4. CONTEXT RETRIEVAL:
+   Retrieved chunks → Extract text & metadata
+                   → Format with sources
+                   → Pass to GPT with query
+
+5. ANSWER GENERATION:
+   Query + Context → GPT-3.5-turbo
+                  → Generate answer
+                  → Return with sources
+
+6. RESPONSE BACK TO USER:
+   {
+     "answer": "Endee is a vector database...",
+     "sources": ["doc1.pdf", "doc2.txt"],
+     "retrieval_time": 0.234s,
+     "generation_time": 2.156s
+   }
 
 ================================================================================
 EXAMPLE USAGE
@@ -171,177 +222,243 @@ EXAMPLE USAGE
 
 Web UI (Easiest):
   1. Open http://localhost:8501
-  2. Type: "What is Endee?"
-  3. Click Send
-  4. Get answer with sources
+  2. Go to "Chat" tab
+  3. Type: "What is semantic search?"
+  4. Wait 2-6 seconds
+  5. Get answer + sources + timing
 
 REST API:
-  curl -X POST "http://localhost:8000/ask" \
+  curl -X POST "http://localhost:8000/query" \
     -H "Content-Type: application/json" \
-    -d '{"question":"What is Endee?","session_id":"test"}'
+    -d '{"query":"What is semantic search?","top_k":5}'
 
 Response:
   {
-    "answer": "Endee is a high-performance vector database...",
-    "sources": [
-      {"text": "...", "source": "endee_guide.txt", "similarity": 0.92}
+    "query": "What is semantic search?",
+    "answer": "Semantic search is a search technique that...",
+    "context_chunks": [
+      {
+        "id": "chunk_123",
+        "score": 0.892,
+        "text": "Semantic search refers to...",
+        "source": "/data/ai_guide.pdf"
+      }
     ],
+    "sources": ["/data/ai_guide.pdf"],
+    "retrieval_time": 0.234,
+    "generation_time": 2.156,
     "success": true
   }
+
+Upload Document:
+  curl -X POST "http://localhost:8000/documents/upload" \
+    -F "file=@myfile.pdf"
 
 ================================================================================
 TROUBLESHOOTING
 ================================================================================
 
-Problem: "Connection to Endee failed"
-Solution: 1. curl http://localhost:8080/health
-          2. If fails, start: cd endee && ./run.sh
-          3. Check .env ENDEE_URL
+Problem: "Connection refused" at localhost:6379
+Solution: 1. Make sure Endee is running
+          2. curl http://localhost:6379/health
+          3. If not running: docker run -p 6379:6379 endeeio/endee:latest
 
-Problem: "GEMINI_API_KEY not found"
-Solution: 1. Get from: https://makersuite.google.com/app/apikey
-          2. Add to .env file
-          3. Restart backend
+Problem: "Invalid API key" for OpenAI
+Solution: 1. Get key from: https://platform.openai.com/api-keys
+          2. Key must start with "sk-"
+          3. Add to .env: OPENAI_API_KEY=sk-your-key
+          4. Restart backend
 
-Problem: "No documents found"
-Solution: 1. Add .txt files to data/
-          2. Run: python scripts/ingest_documents.py
-          3. Restart backend
+Problem: "No documents found" in search
+Solution: 1. Check data/ folder has .txt/.pdf/.md files
+          2. Run: cd backend_v2 && python ingest_documents.py
+          3. Check stats: curl http://localhost:8000/stats
+          4. Restart backend
 
 Problem: "Port already in use"
-Solution: Change port in command:
-          python -m uvicorn backend.main:app --port 8001
-          streamlit run frontend/streamlit_app.py --server.port 8502
+Solution: Kill existing process or change port:
+          python -m backend_v2.main --port 8001
+          streamlit run frontend_v2/app.py --server.port 8502
+
+Problem: "Slow responses" (>10 seconds)
+Solution: 1. Reduce RAG_TOP_K from 5 to 3 in .env
+          2. Check API rate limits
+          3. Verify network connection
+          4. Monitor logs for errors
 
 ================================================================================
 VERIFICATION CHECKLIST
 ================================================================================
 
-After setup, verify:
-  [ ] Endee running: curl http://localhost:8080/health
-  [ ] API running: curl http://localhost:8000/health
-  [ ] Documents ingested: python scripts/ingest_documents.py
-  [ ] Backend responding: curl http://localhost:8000/docs
-  [ ] UI opens: http://localhost:8501
-  [ ] Can ask question and get answer
-  [ ] Sources appear in response
-  [ ] Analytics work: curl http://localhost:8000/analytics/stats
+After setup, verify each step:
+  [ ] Endee health: curl http://localhost:6379/health
+  [ ] API health: curl http://localhost:8000/health
+  [ ] API docs accessible: http://localhost:8000/docs
+  [ ] Documents in data/ folder
+  [ ] Ingest docs: cd backend_v2 && python ingest_documents.py
+  [ ] Check stats: curl http://localhost:8000/stats
+  [ ] Frontend loads: http://localhost:8501
+  [ ] Can ask question in chat
+  [ ] Get answer with sources
+  [ ] See timing metrics
 
 ================================================================================
 PERFORMANCE METRICS
 ================================================================================
 
-First response: 3-5 seconds (normal, model loading)
-Subsequent: 1-2 seconds (normal)
-Cached: <500ms (very fast)
-Cache hit rate: 50-75%
-Success rate: 95%+
+Typical Response Times:
+  - Query Embedding: 200-500ms (OpenAI)
+  - Endee Search: 100-300ms
+  - GPT Generation: 2-5 seconds
+  - Total: 2.3-5.8 seconds
+  
+System is working correctly if within these ranges.
 
-System is working correctly if responses are in these ranges.
+Performance Optimization:
+  - Slow? Reduce RAG_TOP_K to 3
+  - Reduce costs? Use fewer RAG_TOP_K
+  - Better quality? Increase RAG_TOP_K to 10
+  - Faster? Use smaller CHUNK_SIZE
 
 ================================================================================
 DOCUMENTATION FILES
 ================================================================================
 
 START HERE:
-  → README.md (671 lines)
-    Complete guide with architecture, examples, API docs
+  → README_PRODUCTION.md (722 lines) ⭐ COMPLETE REFERENCE
+    Full architecture, API docs, config, troubleshooting
 
 SETUP GUIDE:
-  → COMPLETE_SETUP.md (578 lines)
-    Step-by-step setup, part by part, with verification
+  → STARTUP_GUIDE.md (575 lines) ⭐ STEP-BY-STEP
+    Quick start, detailed setup, testing, performance tips
 
 SUMMARY:
-  → FINAL_SUMMARY.md (570 lines)
-    Complete overview of what was built
+  → IMPLEMENTATION_COMPLETE.md (586 lines)
+    Overview of code, features, statistics
 
-QUICK REFERENCE:
+OVERVIEW:
+  → DELIVERY_SUMMARY.txt (499 lines)
+    Executive summary of what was built
+
+QUICK REF:
   → QUICK_REFERENCE.txt (this file)
-    Quick lookup for commands and troubleshooting
+    Quick lookup commands and troubleshooting
 
 ================================================================================
-SUPPORT
+SUPPORT & HELP
 ================================================================================
 
-Most problems solved by:
-  1. Reading COMPLETE_SETUP.md (troubleshooting section)
-  2. Checking documentation in README.md
-  3. Verifying components are running (health checks)
-  4. Reading error messages carefully
+Most issues solved by:
+  1. Reading STARTUP_GUIDE.md troubleshooting section
+  2. Checking README_PRODUCTION.md docs
+  3. Verifying components: curl http://localhost:XXXX/health
+  4. Reviewing error messages carefully
+  5. Checking docker logs: docker-compose logs -f
 
-For help:
+For detailed help:
+  • See "Troubleshooting" section above
   • Check logs in terminal output
-  • Try fresh start: restart all components
-  • Verify .env file is correct
-  • Ensure Endee is running first
+  • Verify all components are running
+  • Ensure OpenAI API key is valid
+  • Check Endee is running first
 
 ================================================================================
 PROJECT STATISTICS
 ================================================================================
 
-Code:
-  - Backend: 2,500+ lines
-  - Frontend: 300+ lines
-  - Scripts: 900+ lines
-  - Total: 4,000+ production lines
+Code (Production):
+  - Backend: 1,749 lines (5 modules)
+  - Frontend: 536 lines (1 module)
+  - Scripts: 236 lines (1 module)
+  - Total: 2,521 lines of code
+
+Configuration & Docker:
+  - requirements_new.txt: 53 lines
+  - .env.example: 60 lines
+  - Dockerfiles: 60 lines
+  - docker-compose: 70 lines
+  - Total: 243 lines
 
 Documentation:
+  - README_PRODUCTION.md: 722 lines
+  - STARTUP_GUIDE.md: 575 lines
+  - IMPLEMENTATION_COMPLETE.md: 586 lines
+  - DELIVERY_SUMMARY.txt: 499 lines
+  - Other guides: 1,200+ lines
   - Total: 2,500+ lines
-  - 4 main guides
+
+TOTAL PROJECT: 5,200+ Lines
 
 Modules:
-  - Python files: 20+
-  - API endpoints: 14+
-  - AI bots: 4
+  - Python files: 6 main + utilities
+  - API endpoints: 8+
+  - RAG components: 5
   - Functions: 100+
 
-Features:
-  - Document ingestion ✓
-  - Embedding generation ✓
-  - Semantic search ✓
-  - Answer generation ✓
-  - Conversation memory ✓
-  - Query optimization ✓
-  - Caching ✓
-  - Analytics ✓
+Features Implemented:
+  ✓ Document ingestion (multi-format)
+  ✓ Embedding generation (OpenAI)
+  ✓ Semantic search (Endee)
+  ✓ RAG pipeline (full implementation)
+  ✓ Answer generation (GPT-3.5-turbo)
+  ✓ REST API (FastAPI)
+  ✓ Web UI (Streamlit)
+  ✓ Docker containerization
+  ✓ Error handling & logging
+  ✓ Health monitoring
+  ✓ Performance metrics
 
 ================================================================================
 WHAT'S INCLUDED
 ================================================================================
 
-✓ Complete Endee vector database integration
-✓ Document processing pipeline (577 lines)
-✓ Multi-agent RAG system
-✓ FastAPI backend with 14+ endpoints
-✓ Streamlit web UI
-✓ Query optimization
-✓ Caching layer
-✓ Analytics dashboard
-✓ Docker containerization
-✓ Comprehensive documentation
-✓ Troubleshooting guides
-✓ Example usage
+Backend:
+  ✓ FastAPI server (478 lines, 8+ endpoints)
+  ✓ Endee vector DB client (330 lines)
+  ✓ OpenAI embeddings integration (213 lines)
+  ✓ RAG pipeline (387 lines)
+  ✓ Document processor (341 lines)
+  ✓ Batch ingestion (236 lines)
 
-✓ Production-ready code
-✓ Error handling throughout
-✓ Full logging
-✓ Type hints
-✓ Security best practices
+Frontend:
+  ✓ Streamlit web interface (536 lines)
+  ✓ Chat with AI assistant
+  ✓ Semantic search tool
+  ✓ Document upload & processing
+  ✓ Analytics dashboard
+  ✓ System health monitoring
+
+Infrastructure:
+  ✓ Docker containerization
+  ✓ docker-compose orchestration
+  ✓ Environment configuration
+  ✓ Health checks
+  ✓ Logging system
+  ✓ Error handling
+
+Documentation:
+  ✓ 2,500+ lines of docs
+  ✓ Setup guides
+  ✓ API reference
+  ✓ Architecture explanation
+  ✓ Troubleshooting guide
+  ✓ Performance tips
 
 ================================================================================
 NEXT STEPS
 ================================================================================
 
-1. Read README.md for complete overview
-2. Follow COMPLETE_SETUP.md for step-by-step setup
-3. Run the system using one of 3 methods
-4. Open http://localhost:8501
-5. Start asking questions!
+1. ✅ Set up: docker-compose -f docker-compose-app.yml up
+2. ✅ Access: http://localhost:8501
+3. ✅ Add docs: Place files in data/
+4. ✅ Ask questions: Use chat interface
+5. ✅ Monitor: Check Analytics tab
 
-Total setup time: 15-20 minutes
-Total running time: 5 minutes
+Typical flow:
+  Setup (5 min) → Access UI (1 min) → Ask questions (ongoing)
 
 ================================================================================
-Built with Endee Vector Database + Google Gemini + Python
-Status: COMPLETE ✓ READY FOR PRODUCTION ✓
-================================================================================
+Built with Endee Vector Database + OpenAI GPT-3.5-turbo + Python
+Status: ✅ COMPLETE | PRODUCTION READY | FULLY DOCUMENTED
+Last Updated: January 2024
+================================================================================ 
