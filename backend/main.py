@@ -11,6 +11,9 @@ from backend.config import settings
 from backend.rag_pipeline import get_rag_pipeline
 from backend.endee_client import get_endee_client
 from backend.logging_config import get_logger
+from backend.analytics import get_analytics
+from backend.cache_manager import get_query_cache
+from backend.query_optimizer import get_query_optimizer
 
 logger = get_logger("main")
 
@@ -92,6 +95,22 @@ async def ask_question(request: QuestionRequest):
         if not request.question.strip():
             raise HTTPException(status_code=400, detail="Question cannot be empty")
         
+        # Check cache first
+        cache = get_query_cache()
+        cached_result = cache.get(request.question)
+        if cached_result:
+            logger.info(f"Returning cached result for: {request.question}")
+            return JSONResponse(content=cached_result)
+        
+        # Start analytics
+        analytics = get_analytics()
+        start_time = analytics.record_query_start()
+        
+        # Optimize query
+        optimizer = get_query_optimizer()
+        validation = optimizer.validate_query(request.question)
+        optimal_params = optimizer.get_optimal_parameters(request.question)
+        
         pipeline = get_rag_pipeline()
         result = await pipeline.process_query(
             question=request.question,
@@ -99,10 +118,26 @@ async def ask_question(request: QuestionRequest):
             use_conversation_history=request.use_conversation_history
         )
         
+        # Record analytics
+        success = result.get("success", False)
+        retrieved_count = result.get("retrieved_documents_count", 0)
+        analytics.record_query_end(start_time, request.question, success, retrieved_count)
+        
+        # Cache successful results
+        if success:
+            cache.set(request.question, result)
+        
+        result["optimization"] = {
+            "validation": validation,
+            "optimal_parameters": optimal_params
+        }
+        
         return JSONResponse(content=result)
     
     except Exception as e:
         logger.error(f"Error processing question: {str(e)}")
+        analytics = get_analytics()
+        analytics.record_query_end(start_time, request.question, False, 0)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -225,6 +260,94 @@ async def clear_chat_history(session_id: str):
     
     except Exception as e:
         logger.error(f"Error clearing chat history: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/analytics/stats")
+async def get_analytics_stats():
+    """Get system analytics and statistics.
+    
+    Returns:
+        Comprehensive system metrics and performance stats.
+    """
+    try:
+        analytics = get_analytics()
+        cache = get_query_cache()
+        
+        return {
+            "system_stats": analytics.get_system_stats(),
+            "cache_stats": cache.get_stats(),
+            "recent_queries": analytics.get_recent_queries(5)
+        }
+    
+    except Exception as e:
+        logger.error(f"Error getting analytics: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/analytics/report")
+async def get_performance_report():
+    """Get comprehensive performance report.
+    
+    Returns:
+        Detailed performance metrics and insights.
+    """
+    try:
+        analytics = get_analytics()
+        return analytics.get_performance_report()
+    
+    except Exception as e:
+        logger.error(f"Error generating report: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/cache/clear")
+async def clear_cache():
+    """Clear all query cache.
+    
+    Returns:
+        Confirmation of cache clear.
+    """
+    try:
+        cache = get_query_cache()
+        cache.invalidate()
+        return {"message": "Cache cleared successfully"}
+    
+    except Exception as e:
+        logger.error(f"Error clearing cache: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/query/optimize")
+async def optimize_query(question: str):
+    """Analyze and optimize a query.
+    
+    Args:
+        question: The query to optimize.
+        
+    Returns:
+        Query analysis and optimization recommendations.
+    """
+    try:
+        optimizer = get_query_optimizer()
+        
+        validation = optimizer.validate_query(question)
+        query_type = optimizer.detect_query_type(question)
+        keywords = optimizer.extract_keywords(question)
+        optimal_params = optimizer.get_optimal_parameters(question)
+        preprocessed = optimizer.preprocess_query(question)
+        
+        return {
+            "original_query": question,
+            "preprocessed_query": preprocessed,
+            "query_type": query_type,
+            "keywords": keywords,
+            "validation": validation,
+            "optimal_parameters": optimal_params
+        }
+    
+    except Exception as e:
+        logger.error(f"Error optimizing query: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
